@@ -1,0 +1,156 @@
+:root {
+    --card-width: 80px;
+    --card-height: 112px;
+    --card-gap: 10px;
+    /* Reduced for double solitaire */
+    --bg-color: #2E7D32;
+    /* Classic Green */
+    --card-bg: #FFFFFF;
+    --text-color: #000000;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+    /* Prevent scrolling if possible */
+}
+
+#app {
+    padding: 20px;
+    width: 100%;
+    max-width: 1000px;
+}
+
+#game-board {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#top-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+#stock-container {
+    display: flex;
+    gap: var(--card-gap);
+}
+
+#foundations {
+    display: flex;
+    gap: var(--card-gap);
+}
+
+#tableau {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.pile {
+    width: var(--card-width);
+    height: var(--card-height);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.card {
+    width: var(--card-width);
+    height: var(--card-height);
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Removed flex center, using absolute positioning for corners */
+    cursor: grab;
+    user-select: none;
+    font-family: 'Courier New', Courier, monospace;
+    /* Monospace for alignment */
+    font-weight: bold;
+    transition: z-index 0s;
+    /* Instant reset when mouse leaves */
+}
+
+/* Hover effect removed as per user request */
+
+.card.red {
+    color: #D32F2F;
+}
+
+.card.black {
+    color: #212121;
+}
+
+.card.face-down {
+    background-color: #1565C0;
+    /* Blue back */
+    background-image: repeating-linear-gradient(45deg,
+            #1565C0,
+            #1565C0 10px,
+            #1976D2 10px,
+            #1976D2 20px);
+    border: 1px solid white;
+    /* Added white outline */
+    box-sizing: border-box;
+    /* Ensure border is included in width/height */
+}
+
+.card.face-down.deck-2 {
+    background-color: #C62828 !important;
+    /* Red back for second deck */
+    background-image: repeating-linear-gradient(45deg,
+            #C62828,
+            #C62828 10px,
+            #E53935 10px,
+            #E53935 20px) !important;
+}
+
+.card .corner {
+    position: absolute;
+    display: flex;
+    flex-direction: row;
+    /* Changed from column to row */
+    align-items: center;
+    gap: 4px;
+    /* Add space between suit and rank */
+    font-size: 24px;
+    /* Increased from 14px */
+    line-height: 1;
+    padding: 4px;
+}
+
+.card .corner.top-left {
+    top: 2px;
+    left: 2px;
+}
+
+.card .corner.bottom-right {
+    bottom: 2px;
+    right: 2px;
+    transform: rotate(180deg);
+}
+
+/* Center symbol for aesthetics */
+.card .center-symbol {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+}
+
+/* Stacking in tableau */
+.tableau-pile .card {
+    /* We will handle top offset in JS, but for now just relative */
+}
