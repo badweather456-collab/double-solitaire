@@ -1,17 +1,17 @@
-import { Solitaire } from './logic/Solitaire.js';
+import { Solitaire } from './logic/Solitaire.js?v=24';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
 
 // DOM Elements
 const stockEl = document.getElementById('stock');
-const wasteEl = document.getElementById('waste');
+const stockCountEl = document.getElementById('stock-count');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
 const tableauEls = Array.from(document.querySelectorAll('.tableau-pile'));
 
 // State for drag and drop
 let draggedCard = null;
-let sourcePile = null; // { type: 'tableau'|'waste'|'foundation', index: int|string }
+let sourcePile = null; // { type: 'tableau'|'foundation', index: int|string }
 
 function init() {
     game.startNewGame();
@@ -34,7 +34,7 @@ function createCardElement(card) {
         // Top Left Corner
         const tl = document.createElement('div');
         tl.classList.add('corner', 'top-left');
-        tl.innerHTML = `<div>${card.suitSymbol}</div><div>${card.rankString}</div>`;
+        tl.innerHTML = `<div>${card.suitSymbol}</div><div>${card.rankString}</div>`; // Swapped order to standard
         el.appendChild(tl);
 
         // Bottom Right Corner
@@ -43,7 +43,7 @@ function createCardElement(card) {
         br.innerHTML = `<div>${card.suitSymbol}</div><div>${card.rankString}</div>`;
         el.appendChild(br);
 
-        // Center Symbol (Optional, but looks nice)
+        // Center Symbol (Restored)
         const center = document.createElement('div');
         center.classList.add('center-symbol');
         center.textContent = card.suitSymbol;
@@ -57,26 +57,22 @@ function createCardElement(card) {
 }
 
 function render() {
+    // Update Stock Count
+    if (stockCountEl) {
+        stockCountEl.textContent = game.stock.length;
+    }
+
     // Render Stock
     stockEl.innerHTML = '';
     if (game.stock.length > 0) {
         const card = document.createElement('div');
         card.classList.add('card', 'face-down');
         stockEl.appendChild(card);
-    } else if (game.stock.length === 0 && game.waste.length > 0) {
-        // Show empty stock placeholder that can be clicked to recycle
+    } else {
+        // Show empty stock placeholder
         const empty = document.createElement('div');
-        empty.classList.add('card-placeholder'); // Add style for this
+        empty.classList.add('card-placeholder');
         stockEl.appendChild(empty);
-    }
-
-    // Render Waste
-    wasteEl.innerHTML = '';
-    if (game.waste.length > 0) {
-        // Show top 3 cards or just top 1? Standard is top 1 visible fully, maybe fanned
-        // For simplicity, just top 1 for now
-        const topCard = game.waste[game.waste.length - 1];
-        wasteEl.appendChild(createCardElement(topCard));
     }
 
     // Render Foundations
@@ -102,13 +98,117 @@ function render() {
             el.appendChild(cardEl);
         });
     });
+
+    // Check Game Over State
+    const gameState = game.checkGameState();
+    if (gameState.gameOver) {
+        setTimeout(() => {
+            const messageEl = document.getElementById('game-message');
+            messageEl.classList.remove('hidden');
+
+            if (gameState.loopDetected) {
+                messageEl.textContent = 'Game Over';
+            } else {
+                messageEl.textContent = 'Game Over: No more moves possible!';
+            }
+        }, 500);
+    }
 }
 
 function setupEventListeners() {
     // Stock Click
     stockEl.addEventListener('click', () => {
-        game.drawFromStock();
-        render();
+        // If animation is already playing, ignore click (simple debounce)
+        if (document.querySelector('.flying-card')) return;
+
+        // Capture count BEFORE dealing for animation purposes
+        let currentVisualStockCount = game.stock.length;
+
+        const moves = game.drawFromStock();
+
+        if (!moves || moves.length === 0) {
+            render();
+            return;
+        }
+
+        // Animate moves sequentially
+        const stockRect = stockEl.getBoundingClientRect();
+
+        moves.forEach((move, index) => {
+            // Delay start of each card by index * 250ms (0.25 seconds)
+            setTimeout(() => {
+                const tempCard = createCardElement(move.card);
+                tempCard.classList.add('flying-card');
+
+                // Decrement visual count as card flies
+                if (currentVisualStockCount > 0) {
+                    currentVisualStockCount--;
+                    stockCountEl.textContent = currentVisualStockCount;
+                }
+
+                // Start at stock position
+                tempCard.style.position = 'fixed';
+                tempCard.style.left = `${stockRect.left}px`;
+                tempCard.style.top = `${stockRect.top}px`;
+                // Higher z-index for later cards so they are on top if they overlap
+                tempCard.style.zIndex = 1000 + index;
+                tempCard.style.transition = 'all 0.1s ease-in-out'; // 0.1 seconds animation
+
+                document.body.appendChild(tempCard);
+
+                // Trigger reflow
+                tempCard.getBoundingClientRect();
+
+                // Calculate target position
+                const targetPileEl = tableauEls[move.targetIndex];
+                const targetRect = targetPileEl.getBoundingClientRect();
+
+                // Calculate offset.
+                const pile = game.tableau[move.targetIndex];
+                const cardIndexInPile = pile.findIndex(c => c.id === move.card.id);
+                // 30px offset per card in pile + 2px border offset
+                const offset = cardIndexInPile * 30;
+
+                // Move to target
+                setTimeout(() => {
+                    // Add 2px to account for the border of the pile
+                    tempCard.style.left = `${targetRect.left + 2}px`;
+                    tempCard.style.top = `${targetRect.top + offset + 2}px`;
+                }, 50); // Small delay to ensuring rendering start
+
+                // Cleanup after animation: LAND the card
+                setTimeout(() => {
+                    // "Land" the card: Switch to absolute positioning inside the target pile
+                    tempCard.classList.remove('flying-card');
+                    tempCard.style.position = 'absolute';
+                    // Reset coordinates to be relative to the pile
+                    // offset is calculated based on index, which matches the visual stack
+                    tempCard.style.top = `${offset}px`;
+                    tempCard.style.left = '0px';
+                    tempCard.style.transition = 'none'; // Remove transition to prevent jump
+                    tempCard.style.zIndex = 'auto'; // Let DOM order handle it, or keep index if needed
+
+                    targetPileEl.appendChild(tempCard);
+
+                    // Optional: If this was the last move, maybe check stock empty state?
+                    // But manual DOM update is sufficient for continuity.
+                }, 100); // Match transition timeplicity: just let them pile up visually, then clean all at end.
+                // OR: Cleanup individual card after 2s and show it in the pile?
+                // Let's stick to the "Clean all at end" pattern for simplicity unless it looks weird.
+                // Wait, if we clean all at end, the first card will sit there for a long time.
+                // It might be better to let them stay as 'flying-card' at destination until the very end.
+
+            }, index * 200); // 0.2 second interval (faster dealing)
+        });
+
+        // After ALL animations complete, clean up and render
+        // Total time = (moves.length - 1) * 2000 (start of last card) + 2000 (flight of last card)
+        const totalDuration = (moves.length) * 200;
+
+        setTimeout(() => {
+            document.querySelectorAll('.flying-card').forEach(el => el.remove());
+            render();
+        }, totalDuration + 100); // buffer
     });
 
     // Drag Start (Delegated)

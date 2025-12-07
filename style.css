@@ -51,7 +51,7 @@ body {
 #tableau {
     display: flex;
     justify-content: space-between;
-    margin-top: 20px;
+    /* margin-top: 20px; Removed to rely on flex gap and message spacing */
 }
 
 .pile {
@@ -69,6 +69,8 @@ body {
     background-color: var(--card-bg);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    /* 10% gray outline */
     position: absolute;
     top: 0;
     left: 0;
@@ -150,7 +152,62 @@ body {
     font-size: 32px;
 }
 
+
+
 /* Stacking in tableau */
 .tableau-pile .card {
     /* We will handle top offset in JS, but for now just relative */
+}
+
+#stock-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    /* Flush left */
+    justify-content: center;
+    margin-left: 20px;
+}
+
+#stock-label {
+    font-family: Arial, sans-serif;
+    font-size: 16pt;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+#stock-count {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 36px;
+    color: white;
+    display: flex;
+    align-items: flex-start;
+    /* Flush left */
+    justify-content: center;
+    user-select: none;
+    /* margin-left removed as it is now in wrapper */
+}
+
+#game-message {
+    font-family: Arial, sans-serif;
+    font-size: 24pt;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    margin: 10px 0;
+    /* Add space around the message */
+    min-height: 36px;
+    /* Reserve space to prevent jarring jump found in hiding? Or let it expand? Let it expand. */
+    width: 100%;
+    position: relative;
+    /* Enabled z-index */
+    z-index: 2000;
+    /* Ensure on top */
+}
+
+.hidden {
+    display: none;
 }

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solitaire</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=14">
 </head>
 
 <body>
@@ -14,7 +14,10 @@
             <div id="top-row">
                 <div id="stock-container">
                     <div id="stock" class="pile"></div>
-                    <div id="waste" class="pile"></div>
+                    <div id="stock-info">
+                        <div id="stock-label">CARDS REMAINING:</div>
+                        <div id="stock-count"></div>
+                    </div>
                 </div>
                 <div id="foundations">
                     <div class="pile foundation" data-suit="hearts" data-index="0"></div>
@@ -27,6 +30,7 @@
                     <div class="pile foundation" data-suit="spades" data-index="1"></div>
                 </div>
             </div>
+            <div id="game-message" class="hidden"></div>
             <div id="tableau">
                 <!-- 10 Tableau piles for double solitaire -->
                 <div class="pile tableau-pile" id="tableau-0"></div>
@@ -42,7 +46,7 @@
             </div>
         </div>
     </div>
-    <script type="module" src="src/main.js"></script>
+    <script type="module" src="src/main.js?v=24"></script>
 </body>
 
 </html>
