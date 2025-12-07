@@ -82,6 +82,8 @@ body {
     font-weight: bold;
     transition: z-index 0s;
     /* Instant reset when mouse leaves */
+    touch-action: none;
+    /* Prevent browser scrolling/zooming */
 }
 
 /* Hover effect removed as per user request */

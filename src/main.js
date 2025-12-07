@@ -17,6 +17,7 @@ function init() {
     game.startNewGame();
     render();
     setupEventListeners();
+    setupTouchEvents();
 }
 
 function createCardElement(card) {
@@ -377,6 +378,138 @@ function setupEventListeners() {
         if (game.flipTopCard(tableauIndex)) {
             render();
         }
+    });
+}
+
+function setupTouchEvents() {
+    let touchDragCard = null;
+    let touchSourcePile = null;
+    let dragGhost = null;
+    let touchOffsetX = 0;
+    let touchOffsetY = 0;
+
+    app.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!target) return;
+
+        const cardEl = target.closest('.card');
+        if (!cardEl) return;
+
+        // Ignore face down cards (unless we want to implement flipping on touch, but click likely handles that)
+        if (cardEl.classList.contains('face-down')) return;
+
+        e.preventDefault(); // Prevent scrolling
+
+        const cardId = cardEl.dataset.id;
+        const location = game.findCard(cardId);
+
+        if (!location) return;
+
+        touchDragCard = location.card;
+        touchSourcePile = { type: location.type, index: location.index };
+
+        // Create Ghost
+        // Logic similar to dragstart but manually positioning
+        dragGhost = document.createElement('div');
+        dragGhost.id = 'touch-drag-ghost';
+        dragGhost.style.position = 'fixed';
+        dragGhost.style.zIndex = '9999';
+        dragGhost.style.pointerEvents = 'none'; // Allow touch to pass through to check for drop targets
+
+        // Calculate offset to grab the card where 'touched'
+        const rect = cardEl.getBoundingClientRect();
+        touchOffsetX = touch.clientX - rect.left;
+        touchOffsetY = touch.clientY - rect.top;
+
+        // Clone the relevant stack
+        if (location.type === 'tableau') {
+            const pile = game.tableau[location.index];
+            const cardIndex = pile.indexOf(location.card);
+
+            // Container stack
+            for (let i = cardIndex; i < pile.length; i++) {
+                const c = pile[i];
+                const originalEl = document.querySelector(`.card[data-id="${c.id}"]`);
+                if (originalEl) {
+                    const clone = originalEl.cloneNode(true);
+                    clone.style.position = 'absolute';
+                    clone.style.top = `${(i - cardIndex) * 30}px`;
+                    clone.style.left = '0px';
+                    dragGhost.appendChild(clone);
+                }
+            }
+        } else {
+            // Single card (foundation/stock if drag allowed there?)
+            const clone = cardEl.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.top = '0';
+            clone.style.left = '0';
+            dragGhost.appendChild(clone);
+        }
+
+        // Initial position
+        dragGhost.style.left = `${rect.left}px`;
+        dragGhost.style.top = `${rect.top}px`;
+
+        document.body.appendChild(dragGhost);
+    }, { passive: false });
+
+    app.addEventListener('touchmove', (e) => {
+        if (!dragGhost) return;
+        e.preventDefault(); // Stop scroll
+
+        const touch = e.touches[0];
+        dragGhost.style.left = `${touch.clientX - touchOffsetX}px`;
+        dragGhost.style.top = `${touch.clientY - touchOffsetY}px`;
+    }, { passive: false });
+
+    app.addEventListener('touchend', (e) => {
+        if (!dragGhost) return;
+
+        const touch = e.changedTouches[0];
+        // We need to temporarily hide the ghost or pointer-events: none it (already done) 
+        // to see what's underneath.
+
+        // Check for drop target
+        // We might strike the card element itself if it wasn't hidden or if we are just over it.
+        // Since ghost has pointer-events: none, we should hit the element below.
+
+        let dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+
+        // Clean up ghost
+        document.body.removeChild(dragGhost);
+        dragGhost = null;
+
+        if (!dropTarget) return;
+
+        // Traverse up to find Tableau pile or Foundation
+        const tableauPile = dropTarget.closest('.tableau-pile');
+        const foundationPile = dropTarget.closest('.foundation');
+
+        let moveSuccessful = false;
+
+        if (tableauPile) {
+            const targetIndex = tableauEls.indexOf(tableauPile);
+            if (targetIndex !== -1) {
+                moveSuccessful = game.moveCardToTableau(touchDragCard, touchSourcePile.type, touchSourcePile.index, targetIndex);
+            }
+        } else if (foundationPile) {
+            const suit = foundationPile.dataset.suit;
+            const slotIndex = parseInt(foundationPile.dataset.index);
+            // Ensure suit matches for optimization before calling game logic, or let game logic handle it.
+            // Game logic wants card + source.
+            if (touchDragCard.suit === suit) {
+                moveSuccessful = game.moveCardToFoundation(touchDragCard, touchSourcePile.type, touchSourcePile.index, slotIndex);
+            }
+        }
+
+        if (moveSuccessful) {
+            render();
+        }
+
+        touchDragCard = null;
+        touchSourcePile = null;
     });
 }
 
