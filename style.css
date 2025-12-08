@@ -88,6 +88,14 @@ body {
 
 /* Hover effect removed as per user request */
 
+.card.selected {
+    border: 3px solid #2196F3;
+    /* Material Blue */
+    box-shadow: 0 0 10px 4px rgba(33, 150, 243, 0.6);
+    z-index: 200 !important;
+    /* Ensure visibility */
+}
+
 .card.red {
     color: #D32F2F;
 }

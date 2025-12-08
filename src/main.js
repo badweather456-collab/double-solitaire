@@ -489,6 +489,10 @@ function setupEventListeners() {
     });
 }
 
+// Helper for tap-to-move state
+let selectedCard = null;
+let selectedSource = null;
+
 function setupTouchEvents() {
     let touchDragCard = null;
     let touchSourcePile = null;
@@ -496,27 +500,94 @@ function setupTouchEvents() {
     let touchOffsetX = 0;
     let touchOffsetY = 0;
 
+    let startX = 0;
+    let startY = 0;
+    let isDragging = false;
+
     app.addEventListener('touchstart', (e) => {
         const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        isDragging = false;
+
+        // Potential drag start, but wait for move to confirm
         const target = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (!target) return;
+        if (target) {
+            const cardEl = target.closest('.card');
+            if (cardEl && !cardEl.classList.contains('face-down')) {
+                const cardId = cardEl.dataset.id;
+                const location = game.findCard(cardId);
+                if (location) {
+                    touchDragCard = location.card;
+                    touchSourcePile = { type: location.type, index: location.index };
+                    // Calculate partial offset just in case it becomes a drag
+                    const rect = cardEl.getBoundingClientRect();
+                    touchOffsetX = touch.clientX - rect.left;
+                    touchOffsetY = touch.clientY - rect.top;
+                }
+            }
+        }
+    }, { passive: false });
 
-        const cardEl = target.closest('.card');
-        if (!cardEl) return;
+    app.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const dist = Math.sqrt(Math.pow(touch.clientX - startX, 2) + Math.pow(touch.clientY - startY, 2));
 
-        // Ignore face down cards
-        if (cardEl.classList.contains('face-down')) return;
+        // Threshold for drag
+        if (dist > 10) {
+            isDragging = true;
+            if (touchDragCard && !dragGhost) {
+                // Initialize Drag Ghost
+                e.preventDefault(); // Stop scroll only if we are dragging a card
+                initiateDragGhost(touchDragCard, touchSourcePile, touch.clientX, touch.clientY, touchOffsetX, touchOffsetY);
+            }
+        }
 
-        e.preventDefault(); // Prevent scrolling
+        if (isDragging && dragGhost) {
+            e.preventDefault();
+            dragGhost.style.left = `${touch.clientX - touchOffsetX}px`;
+            dragGhost.style.top = `${touch.clientY - touchOffsetY}px`;
+        }
+    }, { passive: false });
 
-        const cardId = cardEl.dataset.id;
-        const location = game.findCard(cardId);
+    app.addEventListener('touchend', (e) => {
+        // Drag End Logic
+        if (isDragging) {
+            if (dragGhost) {
+                const touch = e.changedTouches[0];
+                // temporarily hide ghost to find drop target
+                dragGhost.style.display = 'none';
+                let dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+                dragGhost.style.display = 'block';
 
-        if (!location) return;
+                document.body.removeChild(dragGhost);
+                dragGhost = null;
 
-        touchDragCard = location.card;
-        touchSourcePile = { type: location.type, index: location.index };
+                if (dropTarget) {
+                    handleDrop(dropTarget, touchDragCard, touchSourcePile);
+                }
+            }
+        } else {
+            // TAP Logic
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target) {
+                // Check if background tap (deselect all)
+                if (target.id === 'app' || target.id === 'game-board') {
+                    deselectAll();
+                    return;
+                }
+                handleTap(target);
+            }
+        }
 
+        // Reset immediate drag vars
+        touchDragCard = null;
+        touchSourcePile = null;
+        isDragging = false;
+    });
+
+    function initiateDragGhost(card, sourceLocation, clientX, clientY, offsetX, offsetY) {
         // Create Ghost
         dragGhost = document.createElement('div');
         dragGhost.id = 'touch-drag-ghost';
@@ -524,15 +595,13 @@ function setupTouchEvents() {
         dragGhost.style.zIndex = '9999';
         dragGhost.style.pointerEvents = 'none';
 
-        // Calculate offset
-        const rect = cardEl.getBoundingClientRect();
-        touchOffsetX = touch.clientX - rect.left;
-        touchOffsetY = touch.clientY - rect.top;
-
         // Clone the relevant stack
-        if (location.type === 'tableau') {
-            const pile = game.tableau[location.index];
-            const cardIndex = pile.indexOf(location.card);
+        const cardEl = document.getElementById(card.id);
+        if (!cardEl) return; // Should not happen
+
+        if (sourceLocation.type === 'tableau') {
+            const pile = game.tableau[sourceLocation.index];
+            const cardIndex = pile.indexOf(card);
 
             // Container stack
             for (let i = cardIndex; i < pile.length; i++) {
@@ -543,6 +612,8 @@ function setupTouchEvents() {
                     clone.style.position = 'absolute';
                     clone.style.top = `${(i - cardIndex) * 30}px`;
                     clone.style.left = '0px';
+                    // Remove ID from clone to avoid dupes? Or keep for visual.
+                    clone.removeAttribute('id');
                     dragGhost.appendChild(clone);
                 }
             }
@@ -556,59 +627,254 @@ function setupTouchEvents() {
         }
 
         // Initial position
-        dragGhost.style.left = `${rect.left}px`;
-        dragGhost.style.top = `${rect.top}px`;
+        dragGhost.style.left = `${clientX - offsetX}px`;
+        dragGhost.style.top = `${clientY - offsetY}px`;
 
         document.body.appendChild(dragGhost);
-    }, { passive: false });
+    }
+}
 
-    app.addEventListener('touchmove', (e) => {
-        if (!dragGhost) return;
-        e.preventDefault(); // Stop scroll
+function handleTap(target) {
+    const cardEl = target.closest('.card');
+    const foundationEl = target.closest('.foundation');
+    const tableauEl = target.closest('.tableau-pile');
 
-        const touch = e.touches[0];
-        dragGhost.style.left = `${touch.clientX - touchOffsetX}px`;
-        dragGhost.style.top = `${touch.clientY - touchOffsetY}px`;
-    }, { passive: false });
+    // 1. Tapping a Card
+    if (cardEl) {
+        if (cardEl.classList.contains('face-down')) return; // Ignore face down
 
-    app.addEventListener('touchend', (e) => {
-        if (!dragGhost) return;
+        const cardId = cardEl.dataset.id;
+        const location = game.findCard(cardId);
+        if (!location) return;
 
-        const touch = e.changedTouches[0];
-        let dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-
-        // Clean up ghost
-        document.body.removeChild(dragGhost);
-        dragGhost = null;
-
-        if (!dropTarget) return;
-
-        // Traverse up to find Tableau pile or Foundation
-        const tableauPile = dropTarget.closest('.tableau-pile');
-        const foundationPile = dropTarget.closest('.foundation');
-
-        let moveSuccessful = false;
-
-        if (tableauPile) {
-            const targetIndex = tableauEls.indexOf(tableauPile);
-            if (targetIndex !== -1) {
-                moveSuccessful = game.moveCardToTableau(touchDragCard, touchSourcePile.type, touchSourcePile.index, targetIndex);
+        // If we already have a selection, this might be a target or a new selection
+        if (selectedCard) {
+            // Tapping itself? Deselect
+            if (selectedCard.id === cardId) {
+                deselectAll();
+                return;
             }
-        } else if (foundationPile) {
-            const suit = foundationPile.dataset.suit;
-            const slotIndex = parseInt(foundationPile.dataset.index);
-            if (touchDragCard.suit === suit) {
-                moveSuccessful = game.moveCardToFoundation(touchDragCard, touchSourcePile.type, touchSourcePile.index, slotIndex);
+
+            // Tapping another card. Is it a valid target for the currently selected card?
+            // "Target" means the pile containing this card.
+            // Check move logic.
+            const targetPileType = location.type;
+            const targetPileIndex = location.index;
+
+            // Attempt Move
+            attemptMove(selectedCard, selectedSource, targetPileType, targetPileIndex);
+        } else {
+            // No selection -> Select this card (if it's a valid source)
+            // Valid source? Top card OR valid substack start.
+            // We use logic similar to isValidSubStack.
+            // Actually, any card in tableau *can* be selected, checking validity happens on move?
+            // User requested: "if I touch a red five... I can then touch a black six"
+            // So we select the red five.
+            selectCard(location.card, location);
+        }
+        return;
+    }
+
+    // 2. Tapping an Empty Pile (Tableau or Foundation)
+    if (selectedCard) {
+        if (foundationEl) {
+            const slotIndex = parseInt(foundationEl.dataset.index);
+            attemptMove(selectedCard, selectedSource, 'foundation', slotIndex);
+        } else if (tableauEl) {
+            const tableauIndex = tableauEls.indexOf(tableauEl);
+            if (tableauIndex !== -1) {
+                attemptMove(selectedCard, selectedSource, 'tableau', tableauIndex);
             }
         }
+    }
+}
 
-        if (moveSuccessful) {
-            render();
+function selectCard(card, location) {
+    deselectAll(); // Clear previous
+
+    // Validate if it can be selected/moved?
+    // In Solitaire, you can grab any face up card, but can only move valid stacks.
+    // If in tableau, check validity if it's below top.
+    if (location.type === 'tableau') {
+        const pile = game.tableau[location.index];
+        const index = pile.indexOf(card);
+        if (index < pile.length - 1) {
+            if (!game.isValidSubStack(pile, index)) {
+                // Invalid stack, maybe don't select? Or select just to error later?
+                // Better UI: don't select invalid stacks.
+                return;
+            }
         }
+    }
 
-        touchDragCard = null;
-        touchSourcePile = null;
+    selectedCard = card;
+    selectedSource = { type: location.type, index: location.index };
+
+    // Visuals
+    // If it's a stack, select all
+    if (location.type === 'tableau') {
+        const pile = game.tableau[location.index];
+        const index = pile.indexOf(card);
+        for (let i = index; i < pile.length; i++) {
+            const c = pile[i];
+            const el = document.getElementById(c.id);
+            if (el) el.classList.add('selected');
+        }
+    } else {
+        const el = document.getElementById(card.id);
+        if (el) el.classList.add('selected');
+    }
+}
+
+function deselectAll() {
+    selectedCard = null;
+    selectedSource = null;
+    document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+}
+
+function attemptMove(card, source, targetType, targetIndex) {
+    // Check validity first to avoid animation if invalid
+    // But Game logic does the check.
+    // We can simulate check or just trust Game logic return.
+    // But we need to know IF valid to animate correctly.
+
+    // We can use a "Dry Run" check? No easy way without duplicating logic.
+    // Actually, animate first? No, that looks bad if it snaps back.
+    // Valid check:
+    let isValid = false;
+
+    // Simple pre-checks based on game rules to allow animation confidence
+    // Or, we hack: modify game state, if fail, revert?
+    // Better: Duplicate simple validation logic here or expose it in Game.
+
+    // Let's rely on game logic for the actual move, but we want to animate "flying".
+    // "Touch a red five, touch a black six".
+    // 1. Check if valid move. 
+    // We'll call game logic. If true, we UNDO the move (visually/state), animate, then REDO?
+    // Or just animate then call game logic?
+    // If we call game logic, it updates state instantly. 'render()' updates DOM.
+    // We want: 1. Validate. 2. Animate (0.1s). 3. Update State/Render.
+
+    // Let's implement specific validation helpers or use try/catch if we had transaction support.
+    // We will assume "if it works, it works".
+    // We can animate "tentatively"? 
+
+    // Plan:
+    // 1. Calculate Target Rect.
+    // 2. Animate clone from Source to Target.
+    // 3. IF animation finishes, Call Game Logic.
+    // 4. If Game Logic returns false, we wasted an animation (ghost snaps back or disappears).
+    // THIS is the user expectation: they see it fly, if it rejects, it flies back or poofs.
+
+    animateFlyingMove(card, source, targetType, targetIndex);
+}
+
+function animateFlyingMove(card, source, targetType, targetIndex) {
+    // 1. Create Ghost Stacks
+    const pile = (source.type === 'tableau') ? game.tableau[source.index] : null;
+    let cardsToMove = [card];
+    if (pile) {
+        const index = pile.indexOf(card);
+        cardsToMove = pile.slice(index);
+    }
+
+    const startRect = document.getElementById(card.id).getBoundingClientRect();
+
+    // Target Rect
+    let targetEl;
+    if (targetType === 'tableau') targetEl = tableauEls[targetIndex];
+    else targetEl = foundationEls.find(el => parseInt(el.dataset.index) === targetIndex && el.dataset.suit === card.suit); // Approx for foundation
+
+    // If foundation search failed (e.g. empty foundation of different suit? No, suit must match)
+    if (targetType === 'foundation' && !targetEl) {
+        // Find correct foundation pile element based on suit/index logic provided in render/setup
+        targetEl = document.querySelector(`.foundation[data-suit="${card.suit}"][data-index="${targetIndex}"]`);
+    }
+
+    if (!targetEl) return; // Should not happen
+
+    // Get exact target position (top of pile)
+    const targetRect = targetEl.getBoundingClientRect();
+    // Offset calculation for tableau drop
+    let targetTopOffset = 0;
+    if (targetType === 'tableau') {
+        const targetPile = game.tableau[targetIndex];
+        targetTopOffset = (targetPile.length) * 30; // 30px per card
+    }
+
+    // Create Flying Container
+    const ghost = document.createElement('div');
+    ghost.style.position = 'fixed';
+    ghost.style.left = `${startRect.left}px`;
+    ghost.style.top = `${startRect.top}px`;
+    ghost.style.zIndex = '2000';
+    ghost.style.transition = 'all 0.1s ease-out'; // THE 0.1s ANIMATION
+
+    // Clone cards into ghost
+    cardsToMove.forEach((c, i) => {
+        const el = document.getElementById(c.id);
+        if (el) {
+            const clone = el.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.top = `${i * 30}px`;
+            clone.style.left = '0';
+            clone.classList.remove('selected');
+            ghost.appendChild(clone);
+        }
     });
+
+    document.body.appendChild(ghost);
+
+    // Trigger Reflow
+    ghost.getBoundingClientRect();
+
+    // Animate to Target
+    // X: targetRect.left
+    // Y: targetRect.top + targetTopOffset
+    // +2 for border alignment typically
+    ghost.style.left = `${targetRect.left + 2}px`; /* +2 border */
+    ghost.style.top = `${targetRect.top + targetTopOffset + 2}px`;
+
+    // Wait for animation end to commit move
+    setTimeout(() => {
+        // Execute Logic
+        let success = false;
+        if (targetType === 'tableau') {
+            success = game.moveCardToTableau(card, source.type, source.index, targetIndex);
+        } else {
+            success = game.moveCardToFoundation(card, source.type, source.index, targetIndex);
+        }
+
+        ghost.remove();
+        deselectAll();
+
+        if (success) {
+            render();
+        } else {
+            // Optional: Animate "Return" or visually indicate failure (shake)?
+        }
+    }, 100); // 0.1s
+}
+
+function handleDrop(dropTarget, card, source) {
+    const tableauPile = dropTarget.closest('.tableau-pile');
+    const foundationPile = dropTarget.closest('.foundation');
+
+    let moveSuccessful = false;
+    if (tableauPile) {
+        const targetIndex = tableauEls.indexOf(tableauPile);
+        if (targetIndex !== -1) {
+            moveSuccessful = game.moveCardToTableau(card, source.type, source.index, targetIndex);
+        }
+    } else if (foundationPile) {
+        const suit = foundationPile.dataset.suit;
+        const slotIndex = parseInt(foundationPile.dataset.index);
+        if (card.suit === suit) {
+            moveSuccessful = game.moveCardToFoundation(card, source.type, source.index, slotIndex);
+        }
+    }
+
+    if (moveSuccessful) render();
 }
 
 init();
