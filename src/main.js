@@ -379,6 +379,57 @@ function setupEventListeners() {
             render();
         }
     });
+
+    // Mouseover for Stack Highlighting
+    app.addEventListener('mouseover', (e) => {
+        const cardEl = e.target.closest('.card');
+        if (!cardEl) return;
+
+        // Ignore face down cards
+        if (cardEl.classList.contains('face-down')) return;
+
+        const cardId = cardEl.dataset.id;
+        const location = game.findCard(cardId);
+
+        if (!location) return;
+
+        // Only highlight tableau stacks
+        if (location.type === 'tableau') {
+            const pile = game.tableau[location.index];
+            const cardIndex = pile.indexOf(location.card);
+
+            // Single card or stack?
+            let isValid = true;
+            if (cardIndex < pile.length - 1) {
+                isValid = game.isValidSubStack(pile, cardIndex);
+            }
+
+            if (isValid) {
+                // Highlight this card and all above it
+                for (let i = cardIndex; i < pile.length; i++) {
+                    const c = pile[i];
+                    const el = document.querySelector(`.card[data-id="${c.id}"]`);
+                    if (el) el.classList.add('highlight-stack');
+                }
+            }
+        }
+    });
+
+    // Mouseout to remove highlights
+    app.addEventListener('mouseout', (e) => {
+        const cardEl = e.target.closest('.card');
+        if (!cardEl) return;
+
+        // If moving to a child element (or staying within the card), ignore
+        if (e.relatedTarget && cardEl.contains(e.relatedTarget)) {
+            return;
+        }
+
+        // Clear all highlights
+        document.querySelectorAll('.highlight-stack').forEach(el => {
+            el.classList.remove('highlight-stack');
+        });
+    });
 }
 
 function setupTouchEvents() {
@@ -396,7 +447,7 @@ function setupTouchEvents() {
         const cardEl = target.closest('.card');
         if (!cardEl) return;
 
-        // Ignore face down cards (unless we want to implement flipping on touch, but click likely handles that)
+        // Ignore face down cards
         if (cardEl.classList.contains('face-down')) return;
 
         e.preventDefault(); // Prevent scrolling
@@ -410,14 +461,13 @@ function setupTouchEvents() {
         touchSourcePile = { type: location.type, index: location.index };
 
         // Create Ghost
-        // Logic similar to dragstart but manually positioning
         dragGhost = document.createElement('div');
         dragGhost.id = 'touch-drag-ghost';
         dragGhost.style.position = 'fixed';
         dragGhost.style.zIndex = '9999';
-        dragGhost.style.pointerEvents = 'none'; // Allow touch to pass through to check for drop targets
+        dragGhost.style.pointerEvents = 'none';
 
-        // Calculate offset to grab the card where 'touched'
+        // Calculate offset
         const rect = cardEl.getBoundingClientRect();
         touchOffsetX = touch.clientX - rect.left;
         touchOffsetY = touch.clientY - rect.top;
@@ -440,7 +490,7 @@ function setupTouchEvents() {
                 }
             }
         } else {
-            // Single card (foundation/stock if drag allowed there?)
+            // Single card
             const clone = cardEl.cloneNode(true);
             clone.style.position = 'absolute';
             clone.style.top = '0';
@@ -468,13 +518,6 @@ function setupTouchEvents() {
         if (!dragGhost) return;
 
         const touch = e.changedTouches[0];
-        // We need to temporarily hide the ghost or pointer-events: none it (already done) 
-        // to see what's underneath.
-
-        // Check for drop target
-        // We might strike the card element itself if it wasn't hidden or if we are just over it.
-        // Since ghost has pointer-events: none, we should hit the element below.
-
         let dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
 
         // Clean up ghost
@@ -497,8 +540,6 @@ function setupTouchEvents() {
         } else if (foundationPile) {
             const suit = foundationPile.dataset.suit;
             const slotIndex = parseInt(foundationPile.dataset.index);
-            // Ensure suit matches for optimization before calling game logic, or let game logic handle it.
-            // Game logic wants card + source.
             if (touchDragCard.suit === suit) {
                 moveSuccessful = game.moveCardToFoundation(touchDragCard, touchSourcePile.type, touchSourcePile.index, slotIndex);
             }
