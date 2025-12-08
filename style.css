@@ -228,8 +228,17 @@ body {
     }
 }
 
-.highlight-stack {
+#stack-highlight-overlay {
+    position: absolute;
+    width: var(--card-width);
+    /* Height will be dynamic */
+    background: transparent;
+    border: 3px solid rgba(255, 255, 0, 0.8);
+    box-shadow: 0 0 10px 4px rgba(255, 255, 0, 0.6);
+    pointer-events: none;
+    z-index: 1000;
+    border-radius: 8px;
     animation: pulsate-glow 2s infinite;
-    z-index: 100 !important;
-    /* Ensure glow is visible over lower cards */
+    box-sizing: border-box;
+    /* Include border in width */
 }

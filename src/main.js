@@ -398,19 +398,70 @@ function setupEventListeners() {
             const pile = game.tableau[location.index];
             const cardIndex = pile.indexOf(location.card);
 
-            // Single card or stack?
-            let isValid = true;
-            if (cardIndex < pile.length - 1) {
-                isValid = game.isValidSubStack(pile, cardIndex);
+            // Find the "Top Run" - the longest valid sequence ending at the top
+            let topRunStartIndex = pile.length - 1;
+            // Scan backwards to find where validity breaks
+            // Note: isValidSubStack checks i to end.
+            // We want the smallest i such that isValidSubStack(pile, i) is true.
+
+            // Optimization: Find first face-up
+            const firstFaceUp = pile.findIndex(c => c.faceUp);
+            if (firstFaceUp !== -1) {
+                for (let i = firstFaceUp; i < pile.length; i++) {
+                    if (game.isValidSubStack(pile, i)) {
+                        topRunStartIndex = i;
+                        break;
+                    }
+                }
             }
 
-            if (isValid) {
-                // Highlight this card and all above it
-                for (let i = cardIndex; i < pile.length; i++) {
-                    const c = pile[i];
-                    const el = document.querySelector(`.card[data-id="${c.id}"]`);
-                    if (el) el.classList.add('highlight-stack');
+            // Determine what to highlight
+            let highlightStartIndex = -1;
+
+            // If hovering within the Top Run, highlight the WHOLE Top Run
+            if (cardIndex >= topRunStartIndex) {
+                highlightStartIndex = topRunStartIndex;
+            } else {
+                // Hovering a card blocked by invalid sequence?
+                // Check if the card itself starts a valid stack (e.g. valid sub-segment buried)
+                // Even if it's buried, if it's a valid segment, maybe user wants to see it?
+                // But usually we only highlight movable stuff.
+                // If it's buried, it's not movable.
+                // However, for consistency, let's highlighting valid sub-segments if hovered.
+                if (game.isValidSubStack(pile, cardIndex)) {
+                    highlightStartIndex = cardIndex;
                 }
+            }
+
+            if (highlightStartIndex !== -1) {
+                // Determine stack properties
+                const stackSize = pile.length - highlightStartIndex;
+                const cardHeight = 112; // From CSS
+                const cardOffset = 30; // From CSS/JS render logic
+
+                // Calculate overlay dimensions
+                // Height = (cards-1)*offset + cardHeight
+                const overlayHeight = ((stackSize - 1) * cardOffset) + cardHeight;
+                const topPos = highlightStartIndex * cardOffset;
+
+                // Create or find overlay
+                let overlay = document.getElementById('stack-highlight-overlay');
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'stack-highlight-overlay';
+                }
+
+                // Append to the pile container (tableau-pile)
+                const tableauPileEl = tableauEls[location.index];
+
+                // If appending to tableauPileEl, it's relative, so absolute pos works
+                if (overlay.parentElement !== tableauPileEl) {
+                    tableauPileEl.appendChild(overlay);
+                }
+
+                overlay.style.height = `${overlayHeight}px`;
+                overlay.style.top = `${topPos}px`;
+                overlay.style.left = '0px'; // Align with pile
             }
         }
     });
@@ -425,10 +476,16 @@ function setupEventListeners() {
             return;
         }
 
-        // Clear all highlights
-        document.querySelectorAll('.highlight-stack').forEach(el => {
-            el.classList.remove('highlight-stack');
-        });
+        // Also ignore if moving to the overlay itself?
+        // Overlay has pointer-events: none, so relatedTarget should check what's behind it?
+        // Actually, if we leave the card and enter the "gap" in the pile, we might still want to highlight?
+        // But for now, strictly implementing "remove if leaving card" is safest.
+
+        // Remove overlay
+        const overlay = document.getElementById('stack-highlight-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
     });
 }
 
