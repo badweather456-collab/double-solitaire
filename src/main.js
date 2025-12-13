@@ -6,6 +6,7 @@ const app = document.getElementById('app');
 // DOM Elements
 const stockEl = document.getElementById('stock');
 const stockCountEl = document.getElementById('stock-count');
+const undoBtn = document.getElementById('undo-btn');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
 const tableauEls = Array.from(document.querySelectorAll('.tableau-pile'));
 
@@ -61,6 +62,10 @@ function render() {
     // Update Stock Count
     if (stockCountEl) {
         stockCountEl.textContent = game.stock.length;
+    }
+
+    if (undoBtn) {
+        undoBtn.disabled = game.undoStack.length === 0;
     }
 
     // Render Stock
@@ -210,6 +215,13 @@ function setupEventListeners() {
             document.querySelectorAll('.flying-card').forEach(el => el.remove());
             render();
         }, totalDuration + 100); // buffer
+    });
+
+    // Undo Click
+    undoBtn.addEventListener('click', () => {
+        if (game.undo()) {
+            render();
+        }
     });
 
     // Drag Start (Delegated)

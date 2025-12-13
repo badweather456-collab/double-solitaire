@@ -13,6 +13,7 @@ export class Solitaire {
         };
         this.tableau = [[], [], [], [], [], [], [], [], [], []]; // 10 columns
         this.stateHistory = new Set();
+        this.undoStack = [];
     }
 
     startNewGame() {
@@ -26,9 +27,29 @@ export class Solitaire {
             spades: [[], []]
         };
         this.tableau = [[], [], [], [], [], [], [], [], [], []]; // 10 columns
+        this.tableau = [[], [], [], [], [], [], [], [], [], []]; // 10 columns
         this.stateHistory = new Set();
+        this.undoStack = [];
 
         this.deal();
+    }
+
+    saveState() {
+        const state = this.clone();
+        this.undoStack.push(state);
+    }
+
+    undo() {
+        if (this.undoStack.length === 0) return false;
+        const previousState = this.undoStack.pop();
+
+        this.deck = previousState.deck;
+        this.stock = previousState.stock;
+        this.foundations = previousState.foundations;
+        this.tableau = previousState.tableau;
+        this.stateHistory = previousState.stateHistory; // Restore history too? Yes.
+
+        return true;
     }
 
     deal() {
@@ -95,6 +116,9 @@ export class Solitaire {
             moves.push({ card, targetIndex: i });
         }
 
+        if (moves.length > 0) {
+            this.undoStack = []; // Clear undo stack on stock usage
+        }
         return moves;
     }
 
@@ -182,6 +206,9 @@ export class Solitaire {
             }
         }
 
+        // Save state before move
+        this.saveState();
+
         // Remove from source
         this.removeFromSource(card, sourcePileType, sourceIndex, cardsToMove.length);
 
@@ -204,6 +231,7 @@ export class Solitaire {
         // If slot specified, use that slot
         if (slotIndex !== null) {
             if (!this.isValidFoundationMove(card, slotIndex)) return false;
+            this.saveState();
             this.removeFromSource(card, sourcePileType, sourceIndex, 1);
             foundationSlots[slotIndex].push(card);
             return true;
@@ -212,6 +240,7 @@ export class Solitaire {
         // Otherwise, find first valid slot
         for (let i = 0; i < foundationSlots.length; i++) {
             if (this.isValidFoundationMove(card, i)) {
+                this.saveState();
                 this.removeFromSource(card, sourcePileType, sourceIndex, 1);
                 foundationSlots[i].push(card);
                 return true;
@@ -251,6 +280,7 @@ export class Solitaire {
             const topCard = pile[pile.length - 1];
             if (!topCard.faceUp) {
                 topCard.faceUp = true;
+                this.undoStack = []; // Clear undo stack on flip
                 return true;
             }
         }
