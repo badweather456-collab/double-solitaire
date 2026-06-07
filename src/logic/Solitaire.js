@@ -191,6 +191,9 @@ export class Solitaire {
             const sourcePile = this.tableau[sourceIndex];
             const cardIndex = sourcePile.indexOf(card);
 
+            // Card must be present in the declared source pile
+            if (cardIndex === -1) return false;
+
             // If not the top card, check if it's a valid stack
             if (cardIndex < sourcePile.length - 1) {
                 if (!this.isValidSubStack(sourcePile, cardIndex)) {

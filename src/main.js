@@ -745,38 +745,9 @@ function deselectAll() {
 }
 
 function attemptMove(card, source, targetType, targetIndex) {
-    // Check validity first to avoid animation if invalid
-    // But Game logic does the check.
-    // We can simulate check or just trust Game logic return.
-    // But we need to know IF valid to animate correctly.
-
-    // We can use a "Dry Run" check? No easy way without duplicating logic.
-    // Actually, animate first? No, that looks bad if it snaps back.
-    // Valid check:
-    let isValid = false;
-
-    // Simple pre-checks based on game rules to allow animation confidence
-    // Or, we hack: modify game state, if fail, revert?
-    // Better: Duplicate simple validation logic here or expose it in Game.
-
-    // Let's rely on game logic for the actual move, but we want to animate "flying".
-    // "Touch a red five, touch a black six".
-    // 1. Check if valid move. 
-    // We'll call game logic. If true, we UNDO the move (visually/state), animate, then REDO?
-    // Or just animate then call game logic?
-    // If we call game logic, it updates state instantly. 'render()' updates DOM.
-    // We want: 1. Validate. 2. Animate (0.1s). 3. Update State/Render.
-
-    // Let's implement specific validation helpers or use try/catch if we had transaction support.
-    // We will assume "if it works, it works".
-    // We can animate "tentatively"? 
-
-    // Plan:
-    // 1. Calculate Target Rect.
-    // 2. Animate clone from Source to Target.
-    // 3. IF animation finishes, Call Game Logic.
-    // 4. If Game Logic returns false, we wasted an animation (ghost snaps back or disappears).
-    // THIS is the user expectation: they see it fly, if it rejects, it flies back or poofs.
+    // Clear selection immediately so a rapid second tap (e.g. double-tap) cannot
+    // trigger a second move for the same card while the animation is in flight.
+    deselectAll();
 
     animateFlyingMove(card, source, targetType, targetIndex);
 }
