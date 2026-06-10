@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=24';
+import { Solitaire } from './logic/Solitaire.js?v=25';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -7,15 +7,43 @@ const app = document.getElementById('app');
 const stockEl = document.getElementById('stock');
 const stockCountEl = document.getElementById('stock-count');
 const undoBtn = document.getElementById('undo-btn');
+const newGameBtn = document.getElementById('new-game-btn');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
 const tableauEls = Array.from(document.querySelectorAll('.tableau-pile'));
+
+// --- Session persistence ---
+const SAVE_KEY = 'double-solitaire-v1';
+
+function saveGameState() {
+    try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(game.serializeState()));
+    } catch (_) {}
+}
+
+function loadGameState() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        game.restoreState(JSON.parse(raw));
+        return true;
+    } catch (_) {
+        localStorage.removeItem(SAVE_KEY);
+        return false;
+    }
+}
+
+function clearGameState() {
+    localStorage.removeItem(SAVE_KEY);
+}
 
 // State for drag and drop
 let draggedCard = null;
 let sourcePile = null; // { type: 'tableau'|'foundation', index: int|string }
 
 function init() {
-    game.startNewGame();
+    if (!loadGameState()) {
+        game.startNewGame();
+    }
     render();
     setupEventListeners();
     setupTouchEvents();
@@ -104,6 +132,9 @@ function render() {
             el.appendChild(cardEl);
         });
     });
+
+    // Persist state so a browser refresh resumes the same game
+    saveGameState();
 
     // Check Game Over State
     const gameState = game.checkGameState();
@@ -222,6 +253,16 @@ function setupEventListeners() {
         if (game.undo()) {
             render();
         }
+    });
+
+    // New Game Click
+    newGameBtn.addEventListener('click', () => {
+        clearGameState();
+        deselectAll();
+        const messageEl = document.getElementById('game-message');
+        messageEl.classList.add('hidden');
+        game.startNewGame();
+        render();
     });
 
     // Drag Start (Delegated)

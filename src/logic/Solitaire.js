@@ -633,5 +633,32 @@ export class Solitaire {
         return null; // Should not happen if logic is correct
     }
 
+    serializeState() {
+        const s = (c) => ({ id: c.id, suit: c.suit, rank: c.rank, faceUp: c.faceUp, deckNumber: c.deckNumber });
+        return {
+            v: 1,
+            tableau: this.tableau.map(pile => pile.map(s)),
+            foundations: Object.fromEntries(
+                Object.entries(this.foundations).map(([suit, slots]) => [suit, slots.map(slot => slot.map(s))])
+            ),
+            stock: this.stock.map(s)
+        };
+    }
 
+    restoreState(data) {
+        if (!data || data.v !== 1) throw new Error('incompatible save');
+        const r = (d) => {
+            const card = new Card(d.suit, d.rank, d.deckNumber);
+            card.id = d.id;
+            card.faceUp = d.faceUp;
+            return card;
+        };
+        this.tableau = data.tableau.map(pile => pile.map(r));
+        this.foundations = Object.fromEntries(
+            Object.entries(data.foundations).map(([suit, slots]) => [suit, slots.map(slot => slot.map(r))])
+        );
+        this.stock = data.stock.map(r);
+        this.undoStack = [];
+        this.stateHistory = new Set();
+    }
 }
