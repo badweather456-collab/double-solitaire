@@ -8,6 +8,9 @@ const stockEl = document.getElementById('stock');
 const stockCountEl = document.getElementById('stock-count');
 const undoBtn = document.getElementById('undo-btn');
 const newGameBtn = document.getElementById('new-game-btn');
+const newGameModal = document.getElementById('new-game-modal');
+const newGameConfirmYes = document.getElementById('new-game-confirm-yes');
+const newGameConfirmNo = document.getElementById('new-game-confirm-no');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
 const tableauEls = Array.from(document.querySelectorAll('.tableau-pile'));
 
@@ -255,14 +258,22 @@ function setupEventListeners() {
         }
     });
 
-    // New Game Click
+    // New Game Click — show confirmation modal
     newGameBtn.addEventListener('click', () => {
+        newGameModal.classList.add('show');
+    });
+
+    newGameConfirmYes.addEventListener('click', () => {
+        newGameModal.classList.remove('show');
         clearGameState();
         deselectAll();
-        const messageEl = document.getElementById('game-message');
-        messageEl.classList.add('hidden');
+        document.getElementById('game-message').classList.add('hidden');
         game.startNewGame();
         render();
+    });
+
+    newGameConfirmNo.addEventListener('click', () => {
+        newGameModal.classList.remove('show');
     });
 
     // Drag Start (Delegated)

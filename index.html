@@ -5,10 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solitaire</title>
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=15">
 </head>
 
 <body>
+    <div id="new-game-modal">
+        <div id="new-game-dialog">
+            <p>Start a new game?<br>Your current progress will be lost.</p>
+            <div id="new-game-dialog-buttons">
+                <button id="new-game-confirm-yes">Yes, New Game</button>
+                <button id="new-game-confirm-no">Keep Playing</button>
+            </div>
+        </div>
+    </div>
+
     <div id="app">
         <div id="game-board">
             <div id="top-row">
