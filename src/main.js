@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=27';
+import { Solitaire } from './logic/Solitaire.js?v=28';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -38,6 +38,9 @@ function loadGameState() {
 function clearGameState() {
     localStorage.removeItem(SAVE_KEY);
 }
+
+// True on desktop/mouse, false on touch-only devices (iPad, etc.)
+const hasMousePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 // State for drag and drop
 let draggedCard = null;
@@ -423,29 +426,34 @@ function setupEventListeners() {
         }
     });
 
-    // Single Click to Flip Face-Down Cards
+    // Click handler — face-down flip works on all devices; select/move on mouse only
     app.addEventListener('click', (e) => {
         const cardEl = e.target.closest('.card');
-        if (!cardEl) return;
 
-        // Only handle face-down cards
-        if (!cardEl.classList.contains('face-down')) return;
+        // Face-down flip: all devices (touch relies on the synthetic click event)
+        if (cardEl && cardEl.classList.contains('face-down')) {
+            const tableauEl = cardEl.closest('.tableau-pile');
+            if (!tableauEl) return;
+            const tableauIndex = tableauEls.indexOf(tableauEl);
+            if (tableauIndex === -1) return;
+            if (game.flipTopCard(tableauIndex)) render();
+            return;
+        }
 
-        // Find which tableau pile this card is in
-        const tableauEl = cardEl.closest('.tableau-pile');
-        if (!tableauEl) return;
-
-        const tableauIndex = tableauEls.indexOf(tableauEl);
-        if (tableauIndex === -1) return;
-
-        // Flip the top card of this pile
-        if (game.flipTopCard(tableauIndex)) {
-            render();
+        // Click-to-select / click-to-move: mouse devices only
+        // (touch devices use setupTouchEvents → handleTap instead)
+        if (hasMousePointer) {
+            if (e.target.id === 'app' || e.target.id === 'game-board') {
+                deselectAll();
+                return;
+            }
+            handleTap(e.target);
         }
     });
 
-    // Mouseover for Stack Highlighting
+    // Mouseover for Stack Highlighting — mouse devices only
     app.addEventListener('mouseover', (e) => {
+        if (!hasMousePointer) return;
         const cardEl = e.target.closest('.card');
         if (!cardEl) return;
 
@@ -530,8 +538,9 @@ function setupEventListeners() {
         }
     });
 
-    // Mouseout to remove highlights
+    // Mouseout to remove highlights — mouse devices only
     app.addEventListener('mouseout', (e) => {
+        if (!hasMousePointer) return;
         const cardEl = e.target.closest('.card');
         if (!cardEl) return;
 
