@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=29';
+import { Solitaire } from './logic/Solitaire.js?v=30';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -720,29 +720,22 @@ function handleTap(target) {
         const location = game.findCard(cardId);
         if (!location) return;
 
-        // If we already have a selection, this might be a target or a new selection
         if (selectedCard) {
-            // Tapping itself? Deselect
+            // Tapping the root of the current selection → deselect
             if (selectedCard.id === cardId) {
                 deselectAll();
                 return;
             }
 
-            // Tapping another card. Is it a valid target for the currently selected card?
-            // "Target" means the pile containing this card.
-            // Check move logic.
-            const targetPileType = location.type;
-            const targetPileIndex = location.index;
-
-            // Attempt Move
-            attemptMove(selectedCard, selectedSource, targetPileType, targetPileIndex);
+            // Try to move selected card/stack to this card's pile.
+            // If the move is invalid, re-select this card instead.
+            const moved = attemptMove(
+                selectedCard, selectedSource, location.type, location.index
+            );
+            if (!moved) {
+                selectCard(location.card, location);
+            }
         } else {
-            // No selection -> Select this card (if it's a valid source)
-            // Valid source? Top card OR valid substack start.
-            // We use logic similar to isValidSubStack.
-            // Actually, any card in tableau *can* be selected, checking validity happens on move?
-            // User requested: "if I touch a red five... I can then touch a black six"
-            // So we select the red five.
             selectCard(location.card, location);
         }
         return;
@@ -843,19 +836,19 @@ function deselectAll() {
 }
 
 function attemptMove(card, source, targetType, targetIndex) {
-    // Validate before doing anything — no animation for illegal moves,
-    // and keep the card selected so the user can try a different target.
+    // Validate before doing anything — returns false for illegal moves so the
+    // caller can decide to re-select rather than silently do nothing.
     if (targetType === 'tableau') {
-        if (!game.isValidTableauMove(card, targetIndex)) return;
+        if (!game.isValidTableauMove(card, targetIndex)) return false;
         if (source.type === 'tableau') {
             const pile = game.tableau[source.index];
             const cardIndex = pile.indexOf(card);
-            if (cardIndex === -1) return;
-            if (cardIndex < pile.length - 1 && !game.isValidSubStack(pile, cardIndex)) return;
+            if (cardIndex === -1) return false;
+            if (cardIndex < pile.length - 1 && !game.isValidSubStack(pile, cardIndex)) return false;
         }
     } else if (targetType === 'foundation') {
         const slotIndex = typeof targetIndex === 'number' ? targetIndex : null;
-        if (!game.isValidFoundationMove(card, slotIndex)) return;
+        if (!game.isValidFoundationMove(card, slotIndex)) return false;
     }
 
     // Clear selection immediately so a rapid second tap (e.g. double-tap) cannot
@@ -863,6 +856,7 @@ function attemptMove(card, source, targetType, targetIndex) {
     deselectAll();
 
     animateFlyingMove(card, source, targetType, targetIndex);
+    return true;
 }
 
 function animateFlyingMove(card, source, targetType, targetIndex) {
