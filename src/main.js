@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=28';
+import { Solitaire } from './logic/Solitaire.js?v=29';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -783,21 +783,23 @@ function selectCard(card, location) {
     selectedCard = card;
     selectedSource = { type: location.type, index: location.index };
 
-    // Highlight selected card(s) in blue
+    // Draw a single blue outline over the entire selected stack
     if (location.type === 'tableau') {
         const pile = game.tableau[location.index];
-        const index = pile.indexOf(card);
-        for (let i = index; i < pile.length; i++) {
-            const c = pile[i];
-            const el = document.getElementById(c.id);
-            if (el) el.classList.add('selected');
-        }
+        const startIndex = pile.indexOf(card);
+        const stackSize = pile.length - startIndex;
+        const overlay = document.createElement('div');
+        overlay.id = 'selection-overlay';
+        overlay.style.top = `${startIndex * 30}px`;
+        overlay.style.height = `${(stackSize - 1) * 30 + 112}px`;
+        tableauEls[location.index].appendChild(overlay);
     } else {
+        // Foundation card — highlight the single card directly
         const el = document.getElementById(card.id);
         if (el) el.classList.add('selected');
     }
 
-    // Highlight every valid destination in green
+    // Highlight every valid destination in yellow
     highlightValidTargets(card, location);
 }
 
@@ -836,6 +838,8 @@ function deselectAll() {
     selectedSource = null;
     document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
     document.querySelectorAll('.valid-target').forEach(el => el.classList.remove('valid-target'));
+    const overlay = document.getElementById('selection-overlay');
+    if (overlay) overlay.remove();
 }
 
 function attemptMove(card, source, targetType, targetIndex) {

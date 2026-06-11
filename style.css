@@ -318,6 +318,18 @@ body {
     background: rgba(255, 255, 255, 0.25);
 }
 
+/* Single unified outline for the selected stack */
+#selection-overlay {
+    position: absolute;
+    width: var(--card-width);
+    background: transparent;
+    border-radius: 8px;
+    box-shadow: 0 0 0 3px #2196F3, 0 0 14px 6px rgba(33, 150, 243, 0.65);
+    pointer-events: none;
+    z-index: 200;
+    box-sizing: border-box;
+}
+
 #stack-highlight-overlay {
     position: absolute;
     width: var(--card-width);
