@@ -89,23 +89,20 @@ body {
 /* Hover effect removed as per user request */
 
 .card.selected {
-    border: 3px solid #2196F3;
-    /* Material Blue */
-    box-shadow: 0 0 10px 4px rgba(33, 150, 243, 0.6);
+    /* box-shadow ring avoids the 1px→3px border shift that moves card content */
+    box-shadow: 0 0 0 3px #2196F3, 0 0 12px 5px rgba(33, 150, 243, 0.7);
     z-index: 200 !important;
-    /* Ensure visibility */
 }
 
-/* Valid move destination — green glow on the top card or empty pile */
+/* Valid move destination — yellow glow on the top card or empty pile */
 .card.valid-target {
-    border: 2px solid #43A047;
-    box-shadow: 0 0 12px 5px rgba(67, 160, 71, 0.75);
+    box-shadow: 0 0 0 2px rgba(255, 220, 0, 1), 0 0 14px 6px rgba(255, 220, 0, 0.85);
     z-index: 150 !important;
 }
 
 .pile.valid-target {
-    border: 2px solid #43A047;
-    box-shadow: 0 0 12px 5px rgba(67, 160, 71, 0.75);
+    border: 2px solid rgba(255, 220, 0, 0.9) !important;
+    box-shadow: 0 0 14px 6px rgba(255, 220, 0, 0.85);
 }
 
 .card.red {
@@ -236,15 +233,15 @@ body {
 
 @keyframes pulsate-glow {
     0% {
-        box-shadow: 0 0 6px 3px rgba(255, 255, 0, 0.6);
+        box-shadow: 0 0 6px 3px rgba(255, 60, 60, 0.6);
     }
 
     50% {
-        box-shadow: 0 0 14px 6px rgba(255, 255, 0, 0.9);
+        box-shadow: 0 0 14px 6px rgba(255, 60, 60, 0.9);
     }
 
     100% {
-        box-shadow: 0 0 6px 3px rgba(255, 255, 0, 0.6);
+        box-shadow: 0 0 6px 3px rgba(255, 60, 60, 0.6);
     }
 }
 
@@ -326,8 +323,8 @@ body {
     width: var(--card-width);
     /* Height will be dynamic */
     background: transparent;
-    border: 3px solid rgba(255, 255, 0, 0.8);
-    box-shadow: 0 0 10px 4px rgba(255, 255, 0, 0.6);
+    border: 3px solid rgba(255, 60, 60, 0.85);
+    box-shadow: 0 0 10px 4px rgba(255, 60, 60, 0.65);
     pointer-events: none;
     z-index: 1000;
     border-radius: 8px;
