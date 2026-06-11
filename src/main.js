@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=25';
+import { Solitaire } from './logic/Solitaire.js?v=26';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -797,6 +797,21 @@ function deselectAll() {
 }
 
 function attemptMove(card, source, targetType, targetIndex) {
+    // Validate before doing anything — no animation for illegal moves,
+    // and keep the card selected so the user can try a different target.
+    if (targetType === 'tableau') {
+        if (!game.isValidTableauMove(card, targetIndex)) return;
+        if (source.type === 'tableau') {
+            const pile = game.tableau[source.index];
+            const cardIndex = pile.indexOf(card);
+            if (cardIndex === -1) return;
+            if (cardIndex < pile.length - 1 && !game.isValidSubStack(pile, cardIndex)) return;
+        }
+    } else if (targetType === 'foundation') {
+        const slotIndex = typeof targetIndex === 'number' ? targetIndex : null;
+        if (!game.isValidFoundationMove(card, slotIndex)) return;
+    }
+
     // Clear selection immediately so a rapid second tap (e.g. double-tap) cannot
     // trigger a second move for the same card while the animation is in flight.
     deselectAll();
