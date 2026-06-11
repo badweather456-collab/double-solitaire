@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=26';
+import { Solitaire } from './logic/Solitaire.js?v=27';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -774,8 +774,7 @@ function selectCard(card, location) {
     selectedCard = card;
     selectedSource = { type: location.type, index: location.index };
 
-    // Visuals
-    // If it's a stack, select all
+    // Highlight selected card(s) in blue
     if (location.type === 'tableau') {
         const pile = game.tableau[location.index];
         const index = pile.indexOf(card);
@@ -788,12 +787,46 @@ function selectCard(card, location) {
         const el = document.getElementById(card.id);
         if (el) el.classList.add('selected');
     }
+
+    // Highlight every valid destination in green
+    highlightValidTargets(card, location);
+}
+
+function highlightValidTargets(card, source) {
+    // Tableau destinations
+    for (let i = 0; i < 10; i++) {
+        if (source.type === 'tableau' && source.index === i) continue;
+        if (game.isValidTableauMove(card, i)) {
+            const pile = game.tableau[i];
+            if (pile.length === 0) {
+                tableauEls[i].classList.add('valid-target');
+            } else {
+                const topCard = pile[pile.length - 1];
+                const el = document.getElementById(topCard.id);
+                if (el) el.classList.add('valid-target');
+            }
+        }
+    }
+
+    // Foundation destinations (only when moving a single top card)
+    if (source.type === 'tableau') {
+        const sourcePile = game.tableau[source.index];
+        if (sourcePile[sourcePile.length - 1] === card) {
+            game.foundations[card.suit].forEach((slot, slotIndex) => {
+                if (game.isValidFoundationMove(card, slotIndex)) {
+                    const el = document.querySelector(`.foundation[data-suit="${card.suit}"][data-index="${slotIndex}"]`);
+                    if (el) el.classList.add('valid-target');
+                }
+            });
+        }
+    }
 }
 
 function deselectAll() {
     selectedCard = null;
     selectedSource = null;
     document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.valid-target').forEach(el => el.classList.remove('valid-target'));
 }
 
 function attemptMove(card, source, targetType, targetIndex) {

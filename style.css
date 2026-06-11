@@ -96,6 +96,18 @@ body {
     /* Ensure visibility */
 }
 
+/* Valid move destination — green glow on the top card or empty pile */
+.card.valid-target {
+    border: 2px solid #43A047;
+    box-shadow: 0 0 12px 5px rgba(67, 160, 71, 0.75);
+    z-index: 150 !important;
+}
+
+.pile.valid-target {
+    border: 2px solid #43A047;
+    box-shadow: 0 0 12px 5px rgba(67, 160, 71, 0.75);
+}
+
 .card.red {
     color: #D32F2F;
 }
