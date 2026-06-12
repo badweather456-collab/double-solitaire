@@ -105,6 +105,12 @@ body {
     box-shadow: 0 0 14px 6px rgba(255, 220, 0, 0.85);
 }
 
+/* Peer card — red glow: same rank/color cards that could also be played */
+.card.peer-card {
+    box-shadow: 0 0 0 2px rgba(255, 60, 60, 1), 0 0 14px 6px rgba(255, 60, 60, 0.85);
+    z-index: 150 !important;
+}
+
 .card.red {
     color: #D32F2F;
 }

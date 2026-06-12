@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=32';
+import { Solitaire } from './logic/Solitaire.js?v=33';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -803,7 +803,7 @@ function selectCard(card, location) {
 }
 
 function highlightValidTargets(card, source) {
-    // Tableau destinations
+    // Tableau destinations — yellow
     for (let i = 0; i < 10; i++) {
         if (source.type === 'tableau' && source.index === i) continue;
         if (game.isValidTableauMove(card, i)) {
@@ -830,6 +830,22 @@ function highlightValidTargets(card, source) {
             });
         }
     }
+
+    // Peer cards — red: other face-up cards with same rank & color that are moveable
+    for (let i = 0; i < 10; i++) {
+        const pile = game.tableau[i];
+        for (let j = 0; j < pile.length; j++) {
+            const c = pile[j];
+            if (!c.faceUp || c === card) continue;
+            if (c.rank !== card.rank || c.color !== card.color) continue;
+            const isTop = j === pile.length - 1;
+            const isValidStack = game.isValidSubStack(pile, j);
+            if (isTop || isValidStack) {
+                const el = document.getElementById(c.id);
+                if (el) el.classList.add('peer-card');
+            }
+        }
+    }
 }
 
 function deselectAll() {
@@ -837,6 +853,7 @@ function deselectAll() {
     selectedSource = null;
     document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
     document.querySelectorAll('.valid-target').forEach(el => el.classList.remove('valid-target'));
+    document.querySelectorAll('.peer-card').forEach(el => el.classList.remove('peer-card'));
     const overlay = document.getElementById('selection-overlay');
     if (overlay) overlay.remove();
 }
