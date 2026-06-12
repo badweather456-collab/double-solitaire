@@ -162,6 +162,10 @@ function render() {
             } else {
                 messageEl.textContent = 'Game Over: No more moves possible!';
             }
+
+            // TODO: ghost effect — render all remaining tableau/stock cards
+            // with reduced opacity (e.g. 0.35) to visually "dim" the board
+            // and make it clear no more moves are available.
         }, 500);
     }
 }
