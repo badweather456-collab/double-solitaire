@@ -5,10 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solitaire</title>
-    <link rel="stylesheet" href="style.css?v=18">
+    <link rel="stylesheet" href="style.css?v=19">
 </head>
 
 <body>
+    <div id="no-progress-modal">
+        <div id="no-progress-dialog">
+            <p>No progress in 10 moves.<br>The game may be stuck.</p>
+            <div id="no-progress-buttons">
+                <button id="no-progress-keep">Keep Playing</button>
+                <button id="no-progress-new-game">New Game</button>
+            </div>
+        </div>
+    </div>
+
     <div id="new-game-modal">
         <div id="new-game-dialog">
             <p>Start a new game?<br>Your current progress will be lost.</p>
@@ -58,7 +68,7 @@
             </div>
         </div>
     </div>
-    <script type="module" src="src/main.js?v=30"></script>
+    <script type="module" src="src/main.js?v=31"></script>
 </body>
 
 </html>

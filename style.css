@@ -245,6 +245,79 @@ body {
     }
 }
 
+/* No-progress advisory modal */
+#no-progress-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+}
+
+#no-progress-modal.show {
+    display: flex;
+}
+
+#no-progress-dialog {
+    background: #E65100;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 12px;
+    padding: 28px 32px;
+    text-align: center;
+    color: white;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    max-width: 300px;
+    width: 90%;
+}
+
+#no-progress-dialog p {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0 0 22px 0;
+    line-height: 1.5;
+}
+
+#no-progress-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+#no-progress-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    flex: 1;
+}
+
+#no-progress-keep {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+#no-progress-keep:active {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+#no-progress-new-game {
+    background: #1B5E20;
+    color: white;
+}
+
+#no-progress-new-game:active {
+    background: #145214;
+}
+
 /* New Game confirmation modal */
 #new-game-modal {
     display: none;

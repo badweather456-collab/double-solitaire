@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=30';
+import { Solitaire } from './logic/Solitaire.js?v=31';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -11,6 +11,9 @@ const newGameBtn = document.getElementById('new-game-btn');
 const newGameModal = document.getElementById('new-game-modal');
 const newGameConfirmYes = document.getElementById('new-game-confirm-yes');
 const newGameConfirmNo = document.getElementById('new-game-confirm-no');
+const noProgressModal = document.getElementById('no-progress-modal');
+const noProgressKeep = document.getElementById('no-progress-keep');
+const noProgressNewGame = document.getElementById('no-progress-new-game');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
 const tableauEls = Array.from(document.querySelectorAll('.tableau-pile'));
 
@@ -142,6 +145,11 @@ function render() {
     // Persist state so a browser refresh resumes the same game
     saveGameState();
 
+    // No-progress advisory — show every 10 consecutive non-productive moves
+    if (game.movesSinceProgress > 0 && game.movesSinceProgress % 10 === 0) {
+        noProgressModal.classList.add('show');
+    }
+
     // Check Game Over State
     const gameState = game.checkGameState();
     if (gameState.gameOver) {
@@ -268,6 +276,7 @@ function setupEventListeners() {
 
     newGameConfirmYes.addEventListener('click', () => {
         newGameModal.classList.remove('show');
+        noProgressModal.classList.remove('show');
         clearGameState();
         deselectAll();
         document.getElementById('game-message').classList.add('hidden');
@@ -277,6 +286,20 @@ function setupEventListeners() {
 
     newGameConfirmNo.addEventListener('click', () => {
         newGameModal.classList.remove('show');
+    });
+
+    // No-progress advisory buttons
+    noProgressKeep.addEventListener('click', () => {
+        noProgressModal.classList.remove('show');
+    });
+
+    noProgressNewGame.addEventListener('click', () => {
+        noProgressModal.classList.remove('show');
+        clearGameState();
+        deselectAll();
+        document.getElementById('game-message').classList.add('hidden');
+        game.startNewGame();
+        render();
     });
 
     // Drag Start (Delegated)

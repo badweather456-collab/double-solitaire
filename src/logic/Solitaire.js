@@ -14,6 +14,7 @@ export class Solitaire {
         this.tableau = [[], [], [], [], [], [], [], [], [], []]; // 10 columns
         this.stateHistory = new Set();
         this.undoStack = [];
+        this.movesSinceProgress = 0;
     }
 
     startNewGame() {
@@ -30,6 +31,7 @@ export class Solitaire {
         this.tableau = [[], [], [], [], [], [], [], [], [], []]; // 10 columns
         this.stateHistory = new Set();
         this.undoStack = [];
+        this.movesSinceProgress = 0;
 
         this.deal();
     }
@@ -47,7 +49,8 @@ export class Solitaire {
         this.stock = previousState.stock;
         this.foundations = previousState.foundations;
         this.tableau = previousState.tableau;
-        this.stateHistory = previousState.stateHistory; // Restore history too? Yes.
+        this.stateHistory = previousState.stateHistory;
+        this.movesSinceProgress = previousState.movesSinceProgress;
 
         return true;
     }
@@ -118,6 +121,7 @@ export class Solitaire {
 
         if (moves.length > 0) {
             this.undoStack = []; // Clear undo stack on stock usage
+            this.movesSinceProgress = 0; // Dealing new cards is progress
         }
         return moves;
     }
@@ -217,6 +221,7 @@ export class Solitaire {
 
         // Add to target
         this.tableau[targetTableauIndex].push(...cardsToMove);
+        this.movesSinceProgress++; // Tableau-to-tableau moves don't count as progress
         return true;
     }
 
@@ -237,6 +242,7 @@ export class Solitaire {
             this.saveState();
             this.removeFromSource(card, sourcePileType, sourceIndex, 1);
             foundationSlots[slotIndex].push(card);
+            this.movesSinceProgress = 0;
             return true;
         }
 
@@ -246,6 +252,7 @@ export class Solitaire {
                 this.saveState();
                 this.removeFromSource(card, sourcePileType, sourceIndex, 1);
                 foundationSlots[i].push(card);
+                this.movesSinceProgress = 0;
                 return true;
             }
         }
@@ -284,6 +291,7 @@ export class Solitaire {
             if (!topCard.faceUp) {
                 topCard.faceUp = true;
                 this.undoStack = []; // Clear undo stack on flip
+                this.movesSinceProgress = 0; // Revealing a new card is progress
                 return true;
             }
         }
@@ -553,6 +561,7 @@ export class Solitaire {
 
         // State History
         clone.stateHistory = new Set(this.stateHistory);
+        clone.movesSinceProgress = this.movesSinceProgress;
 
         return clone;
     }
@@ -660,5 +669,6 @@ export class Solitaire {
         this.stock = data.stock.map(r);
         this.undoStack = [];
         this.stateHistory = new Set();
+        this.movesSinceProgress = 0;
     }
 }
