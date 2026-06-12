@@ -1,4 +1,4 @@
-import { Solitaire } from './logic/Solitaire.js?v=31';
+import { Solitaire } from './logic/Solitaire.js?v=32';
 
 const game = new Solitaire();
 const app = document.getElementById('app');
@@ -204,6 +204,7 @@ function setupEventListeners() {
                 // Higher z-index for later cards so they are on top if they overlap
                 tempCard.style.zIndex = 1000 + index;
                 tempCard.style.transition = 'all 0.1s ease-in-out'; // 0.1 seconds animation
+                tempCard.style.pointerEvents = 'none';
 
                 document.body.appendChild(tempCard);
 
@@ -227,28 +228,6 @@ function setupEventListeners() {
                     tempCard.style.top = `${targetRect.top + offset + 2}px`;
                 }, 50); // Small delay to ensuring rendering start
 
-                // Cleanup after animation: LAND the card
-                setTimeout(() => {
-                    // "Land" the card: Switch to absolute positioning inside the target pile
-                    tempCard.classList.remove('flying-card');
-                    tempCard.style.position = 'absolute';
-                    // Reset coordinates to be relative to the pile
-                    // offset is calculated based on index, which matches the visual stack
-                    tempCard.style.top = `${offset}px`;
-                    tempCard.style.left = '0px';
-                    tempCard.style.transition = 'none'; // Remove transition to prevent jump
-                    tempCard.style.zIndex = 'auto'; // Let DOM order handle it, or keep index if needed
-
-                    targetPileEl.appendChild(tempCard);
-
-                    // Optional: If this was the last move, maybe check stock empty state?
-                    // But manual DOM update is sufficient for continuity.
-                }, 100); // Match transition timeplicity: just let them pile up visually, then clean all at end.
-                // OR: Cleanup individual card after 2s and show it in the pile?
-                // Let's stick to the "Clean all at end" pattern for simplicity unless it looks weird.
-                // Wait, if we clean all at end, the first card will sit there for a long time.
-                // It might be better to let them stay as 'flying-card' at destination until the very end.
-
             }, index * 200); // 0.2 second interval (faster dealing)
         });
 
@@ -259,7 +238,7 @@ function setupEventListeners() {
         setTimeout(() => {
             document.querySelectorAll('.flying-card').forEach(el => el.remove());
             render();
-        }, totalDuration + 100); // buffer
+        }, totalDuration + 200); // buffer: last card starts at (n-1)*200, animates 150ms → need 200ms margin
     });
 
     // Undo Click
